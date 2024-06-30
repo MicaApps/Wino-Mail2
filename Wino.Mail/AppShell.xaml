@@ -258,7 +258,8 @@
         <!--  Inbox or any other folders.  -->
         <DataTemplate x:Key="FolderMenuTemplate" x:DataType="menu:FolderMenuItem">
             <controls:WinoNavigationViewItem
-                MinHeight="30"
+                MinHeight="32"
+                
                 AllowDrop="True"
                 ContextRequested="MenuItemContextRequested"
                 DataContext="{x:Bind}"
@@ -302,6 +303,7 @@
                                 x:Name="CustomColorTitle"
                                 Margin="4,0,0,0"
                                 VerticalAlignment="Center"
+                                
                                 FontWeight="{x:Bind helpers:XamlHelpers.GetFontWeightBySyncState(IsSelected), Mode=OneWay}"
                                 Foreground="{x:Bind helpers:XamlHelpers.GetSolidColorBrushFromHex(Parameter.TextColorHex), Mode=OneWay}"
                                 Style="{StaticResource BodyTextBlockStyle}"
@@ -493,7 +495,8 @@
         x:Name="RootGrid"
         Padding="0"
         ColumnSpacing="0"
-        RowSpacing="0">
+        RowSpacing="0"
+        >
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="48" />
             <ColumnDefinition Width="*" />
@@ -531,7 +534,16 @@
             PaneOpening="NavigationPaneOpening"
             ScrollViewer.VerticalScrollBarVisibility="Hidden"
             SelectedItem="{x:Bind ViewModel.SelectedMenuItem, Mode=TwoWay}"
-            SelectionChanged="MenuSelectionChanged">
+            SelectionChanged="MenuSelectionChanged"
+            Background="#08FFFFFF"
+            >
+            <muxc:NavigationView.Resources>
+                <!--<Thickness x:Key="NavigationViewContentMargin">0,50,0,0</Thickness>-->
+                <SolidColorBrush x:Key="NavigationViewContentBackground"
+         Color="Transparent" />
+                <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush"
+         Color="Transparent" />
+            </muxc:NavigationView.Resources>
             <muxc:NavigationView.ContentTransitions>
                 <TransitionCollection>
                     <AddDeleteThemeTransition />
@@ -545,7 +557,7 @@
             <!--<muxc:NavigationView.PaneFooter>
 
             </muxc:NavigationView.PaneFooter>-->
-            <Grid ColumnSpacing="0">
+            <Grid ColumnSpacing="0" Margin="-30 0 0 0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -611,5 +623,6 @@
             OpenPaneLength="{x:Bind ViewModel.StatePersistenceService.OpenPaneLength, Mode=OneWay}"
             ReadingPaneLength="{x:Bind ViewModel.StatePersistenceService.MailListPaneLength, Mode=OneWay}"
             SystemReserved="180" />
+        
     </Grid>
 </abstract:AppShellAbstract>

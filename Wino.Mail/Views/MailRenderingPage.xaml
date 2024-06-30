@@ -388,19 +388,74 @@
                     VerticalAlignment="Center"
                     IsActive="{x:Bind ViewModel.ShouldDisplayDownloadProgress, Mode=OneWay}" />
             </Grid>
-        </Border>
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="AdaptiveStates">
-                <VisualState x:Name="NarrowedState">
-                    <VisualState.Setters>
-                        <Setter Target="ToFromInformationPanel.Orientation" Value="Horizontal" />
-                    </VisualState.Setters>
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="1200" />
-                    </VisualState.StateTriggers>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
+
+        </Grid>
+
+        <!--  Attachments  -->
+        <ListView x:Name="AttachmentsListView"
+                  Grid.Row="2"
+                  x:Load="{x:Bind helpers:XamlHelpers.CountToBooleanConverter(ViewModel.Attachments.Count), Mode=OneWay}"
+                  IsItemClickEnabled="True"
+                  ItemTemplate="{StaticResource FileAttachmentTemplate}"
+                  ItemsSource="{x:Bind ViewModel.Attachments, Mode=OneWay}"
+                  ItemClick="AttachmentClicked"
+                  SelectionMode="None"
+                  Height="55">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <controls2:WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ListView>
+
+        <muxc:ProgressBar
+            x:Name="DownloadingProgressBar"
+            x:Load="{x:Bind ViewModel.ShouldDisplayDownloadProgress, Mode=OneWay}"
+            IsIndeterminate="{x:Bind ViewModel.IsIndetermineProgress, Mode=OneWay}"
+            Value="{x:Bind ViewModel.CurrentDownloadPercentage, Mode=OneWay}"
+            Grid.Row="3"
+            Margin="12,1"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Stretch" />
+
+        <muxc:InfoBar
+            x:Name="ImageLoadingDisabledMessage"
+            Severity="Warning"
+            HorizontalContentAlignment="Stretch"
+            Grid.Row="4"
+            Margin="0,2"
+            x:Load="{x:Bind ViewModel.IsImageRenderingDisabled, Mode=OneWay}"
+            Message="{x:Bind domain:Translator.ImageRenderingDisabled}"
+            IsOpen="True">
+            <muxc:InfoBar.ActionButton>
+                <Button
+                    Command="{x:Bind ViewModel.ForceImageLoadingCommand}"
+                    Content="{x:Bind domain:Translator.Buttons_EnableImageRendering}"
+                    HorizontalAlignment="Right" />
+            </muxc:InfoBar.ActionButton>
+        </muxc:InfoBar>
+
+        <Grid
+            Grid.Row="5"
+            CornerRadius="3"
+            Padding="0">
+
+            <!--<Grid Background="White" Visibility="{x:Bind IsDarkEditor, Converter={StaticResource ReverseBooleanToVisibilityConverter}, Mode=OneWay}" />-->
+
+            <controls:WebView2
+                x:Name="Chromium"
+                NavigationStarting="WebViewNavigationStarting"
+                Background="Transparent"
+                FontFamily="Segoe UI"/>
+
+            <muxc:ProgressRing
+                IsActive="{x:Bind ViewModel.ShouldDisplayDownloadProgress, Mode=OneWay}"
+                HorizontalAlignment="Center"
+                Width="50"
+                Height="50"
+                VerticalAlignment="Center" />
+        </Grid>
+
     </Grid>
 
 </abstract:MailRenderingPageAbstract>

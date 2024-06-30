@@ -115,74 +115,246 @@
         RowSpacing="7">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+
+            <RowDefinition Height="66" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border
-            Background="{ThemeResource WinoContentZoneBackgroud}"
-            BorderBrush="{StaticResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="7">
-            <Grid>
-                <Grid.Resources>
-                    <SolidColorBrush x:Key="AutoSuggestBoxBorderThemeBrush">Transparent</SolidColorBrush>
-                </Grid.Resources>
+        <Grid
+            x:Name="TopPanelGrid"
+            Padding="16,6,6,6"
+            RowSpacing="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <CommandBar
+                Grid.Row="1"
+                DefaultLabelPosition="Right"
+                OverflowButtonVisibility="Collapsed"
+                DynamicOverflowItemsChanging="BarDynamicOverflowChanging"
+                IsDynamicOverflowEnabled="True">
+                <CommandBar.PrimaryCommands>
+                    <AppBarButton
+                        x:Name="ComposerThemeToggleButton"
+                        LabelPosition="Collapsed"
+                        Click="InvertComposerThemeClicked">
+                        <AppBarButton.Icon>
+                            <controls:WinoFontIcon Icon="DarkEditor" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton Label="Discard" Command="{x:Bind ViewModel.DiscardCommand}">
+                        <AppBarButton.Icon>
+                            <controls:WinoFontIcon Icon="Delete" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                        Label="Send"
+                        IsEnabled="{x:Bind ViewModel.CanSendMail, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.SendCommand}">
+                        <AppBarButton.Icon>
+                            <controls:WinoFontIcon Icon="Send" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                </CommandBar.PrimaryCommands>
+                <CommandBar.Content>
+                    <!--  Wino Pivot  -->
+                    <controls:WinoPivotControl
+                        ItemsSource="{x:Bind ViewModel.ToolbarSections}"
+                        SelectedItem="{x:Bind ViewModel.SelectedToolbarSection, Mode=TwoWay}"
+                        SelectorPipeColor="{ThemeResource NavigationViewSelectionIndicatorForeground}">
+                        <controls:WinoPivotControl.DataTemplate>
+                            <DataTemplate x:DataType="reader:EditorToolbarSection">
+                                <TextBlock Text="{x:Bind Title}" />
+                            </DataTemplate>
+                        </controls:WinoPivotControl.DataTemplate>
+                    </controls:WinoPivotControl>
+                </CommandBar.Content>
+            </CommandBar>
+        </Grid>
 
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="56" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+        <!--  Editor Options  -->
+        <ScrollViewer
+            Height="65"
+            Grid.Row="1"
+            Margin="0,0"
+            VerticalAlignment="Top"
+            VerticalScrollMode="Disabled"
+            VerticalScrollBarVisibility="Hidden"
+            HorizontalScrollBarVisibility="Hidden"
+            HorizontalScrollMode="Enabled">
+            <Grid Margin="0" Padding="0,0" Height="60">
+                <!--  Format Panel  -->
+                <Grid Height="60" x:Name="FormatPanel" Visibility="{x:Bind helpers:XamlHelpers.IsFormatSection(ViewModel.SelectedToolbarSection), Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <CommandBar HorizontalAlignment="Left">
 
-                <Grid
-                    x:Name="TopPanelGrid"
-                    Padding="16,6,6,6"
-                    RowSpacing="6">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <CommandBar
-                        Grid.Row="1"
-                        DefaultLabelPosition="Right"
-                        DynamicOverflowItemsChanging="BarDynamicOverflowChanging"
-                        IsDynamicOverflowEnabled="True"
-                        OverflowButtonVisibility="Collapsed">
-                        <CommandBar.PrimaryCommands>
+
+                            <AppBarToggleButton
+                            x:Name="BoldButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="BoldButtonClicked">
+                                <ToggleButton.Content>
+                                    <PathIcon Data="{StaticResource BoldPathIcon}" />
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+                            <AppBarToggleButton
+                            x:Name="ItalicButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="ItalicButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource ItalicPathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+                            <AppBarToggleButton
+                            x:Name="UnderlineButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="UnderlineButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource UnderlinePathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+                            <AppBarToggleButton
+                            x:Name="StrokeButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="StrokeButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource StrikePathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+
+                            <AppBarSeparator />
+
+                            <AppBarToggleButton
+                            x:Name="BulletListButton"
+                            Height="66"
+                                Width="45"
+                                Margin="0 -1 0 1"                              
+                            Click="BulletListButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource BulletedListPathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+
+                            <AppBarToggleButton
+                            x:Name="OrderedListButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="OrderedListButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource OrderedListPathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+
                             <AppBarButton
-                                x:Name="ComposerThemeToggleButton"
-                                Click="InvertComposerThemeClicked"
-                                LabelPosition="Collapsed">
-                                <AppBarButton.Icon>
-                                    <controls:WinoFontIcon Icon="DarkEditor" />
-                                </AppBarButton.Icon>
+                            x:Name="DecreaseIndentButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="DecreaseIndentClicked">
+                                <Button.Content>
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource DecreaseIndentPathIcon}" />
+                                    </Viewbox>
+                                </Button.Content>
                             </AppBarButton>
-                            <AppBarButton Command="{x:Bind ViewModel.DiscardCommand}" Label="Discard">
-                                <AppBarButton.Icon>
-                                    <controls:WinoFontIcon Icon="Delete" />
-                                </AppBarButton.Icon>
+
+                            <AppBarButton
+                            x:Name="IncreaseIndentButton"
+                            Height="66"
+Width="45"
+Margin="0 -1 0 1"
+                            Click="IncreaseIndentClicked">
+                                <Button.Content>
+                                    <Viewbox Width="66">
+                                        <PathIcon Data="{StaticResource IncreaseIndentPathIcon}" />
+                                    </Viewbox>
+                                </Button.Content>
                             </AppBarButton>
-                            <AppBarButton Command="{x:Bind ViewModel.SendCommand}" Label="Send">
-                                <AppBarButton.Icon>
-                                    <controls:WinoFontIcon Icon="Send" />
-                                </AppBarButton.Icon>
-                            </AppBarButton>
-                        </CommandBar.PrimaryCommands>
-                        <CommandBar.Content>
-                            <!--  Wino Pivot  -->
-                            <controls:WinoPivotControl
-                                ItemsSource="{x:Bind ViewModel.ToolbarSections}"
-                                SelectedItem="{x:Bind ViewModel.SelectedToolbarSection, Mode=TwoWay}"
-                                SelectorPipeColor="{ThemeResource NavigationViewSelectionIndicatorForeground}">
-                                <controls:WinoPivotControl.DataTemplate>
-                                    <DataTemplate x:DataType="reader:EditorToolbarSection">
-                                        <TextBlock Text="{x:Bind Title}" />
-                                    </DataTemplate>
-                                </controls:WinoPivotControl.DataTemplate>
-                            </controls:WinoPivotControl>
-                        </CommandBar.Content>
-                    </CommandBar>
+
+                            <AppBarSeparator />
+
+                            <AppBarToggleButton
+                            x:Name="DirectionButton"
+                            Height="66"
+                            Width="45"
+                            Margin="0 -1 0 1"
+                            Click="DirectionButtonClicked">
+                                <ToggleButton.Content>
+                                    <Viewbox Width="16" >
+                                        <PathIcon Data="{StaticResource ParagraphPathIcon}" />
+                                    </Viewbox>
+                                </ToggleButton.Content>
+                            </AppBarToggleButton>
+
+
+                        </CommandBar>
+                        <ComboBox
+    x:Name="AlignmentListView"
+    Width="120"
+    Height="32"
+    VerticalAlignment="Center"
+    SelectionChanged="AlignmentChanged">
+                            <ComboBoxItem Tag="left">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource AlignLeftPathIcon}" />
+                                    </Viewbox>
+                                    <TextBlock VerticalAlignment="Center" Text="{x:Bind domain:Translator.Left}" />
+                                </StackPanel>
+                            </ComboBoxItem>
+
+                            <ComboBoxItem Tag="center">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource AlignCenterPathIcon}" />
+                                    </Viewbox>
+                                    <TextBlock VerticalAlignment="Center" Text="{x:Bind domain:Translator.Center}" />
+                                </StackPanel>
+                            </ComboBoxItem>
+
+                            <ComboBoxItem Tag="right">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource AlignRightPathIcon}" />
+                                    </Viewbox>
+                                    <TextBlock VerticalAlignment="Center" Text="{x:Bind domain:Translator.Right}" />
+                                </StackPanel>
+                            </ComboBoxItem>
+
+                            <ComboBoxItem Tag="justify">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Viewbox Width="16">
+                                        <PathIcon Data="{StaticResource AlignJustifyPathIcon}" />
+                                    </Viewbox>
+                                    <TextBlock VerticalAlignment="Center" Text="{x:Bind domain:Translator.Justify}" />
+                                </StackPanel>
+                            </ComboBoxItem>
+                        </ComboBox>
+                    </StackPanel>
+
+
                 </Grid>
 
                 <!--  Editor Options  -->
@@ -633,27 +805,42 @@
                     </ListView>
                 </Grid>
 
-                <!--  Dropzone  -->
-                <Grid
-                    Grid.Row="0"
-                    Grid.RowSpan="3"
-                    AllowDrop="True"
-                    DragLeave="OnFileDropGridDragLeave"
-                    DragOver="OnFileDropGridDragOver"
-                    Drop="OnFileDropGridFileDropped"
-                    Visibility="{x:Bind ViewModel.IsDraggingOverComposerGrid, Mode=OneWay}">
-                    <Grid Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}" CornerRadius="9">
-                        <Rectangle
-                            x:Name="DropZoneBorder"
-                            Fill="Transparent"
-                            Opacity="0.5"
-                            RadiusX="9"
-                            RadiusY="9"
-                            Stroke="{ThemeResource TextFillColorPrimaryBrush}"
-                            StrokeDashArray="3,4"
-                            StrokeThickness="2" />
-                        <TextBlock
-                            x:Name="DropZoneText"
+
+            <Grid
+                Grid.Row="2"
+                Grid.Column="1"
+                VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <controls1:TokenizingTextBox
+                    Background="Transparent"
+                    x:Name="ToBox"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    TokenDelimiter=";"
+                    Tag="ToBox"
+                    LostFocus="AddressBoxLostFocus"
+                    BorderThickness="0"
+                    ItemsSource="{x:Bind ViewModel.ToItems, Mode=OneTime}"
+                    TokenItemAdding="TokenItemAdding"
+                    PlaceholderText="{x:Bind domain:Translator.ComposerToPlaceholder}"
+                    TokenItemTemplate="{StaticResource TokenBoxTemplate}"
+                    SuggestedItemTemplate="{StaticResource SuggestionBoxTemplate}" />
+
+                <Button
+                    x:Name="CCBCCShowButton"
+                    Grid.Column="1"
+                    Margin="6,6,0,0"
+                    VerticalAlignment="Center"
+                    GotFocus="CCBBCGotFocus"
+                    Visibility="{x:Bind ViewModel.IsCCBCCVisible, Mode=OneWay}"
+                    Click="ShowCCBCCClicked">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon
+
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             FontSize="20"
@@ -705,7 +892,122 @@
             <Grid>
                 <Grid Background="White" Visibility="{x:Bind IsComposerDarkMode, Converter={StaticResource ReverseBooleanToVisibilityConverter}, Mode=OneWay}" />
 
+
+            <!--  CC BCC  -->
+            <TextBlock
+                x:Name="CCTextBlock"
+                Grid.Row="3"
+                Margin="0,4,0,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Text="Cc: "
+                Visibility="{x:Bind helpers:XamlHelpers.ReverseVisibilityConverter(CCBCCShowButton.Visibility), Mode=OneWay}" />
+
+            <controls1:TokenizingTextBox
+                x:Name="CCBox"
+                Grid.Row="3"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                LostFocus="AddressBoxLostFocus"
+                PlaceholderText="{x:Bind domain:Translator.ComposerToPlaceholder}"
+                SuggestedItemTemplate="{StaticResource SuggestionBoxTemplate}"
+                Tag="CCBox"
+                TokenItemAdding="TokenItemAdding"
+                TokenItemTemplate="{StaticResource TokenBoxTemplate}"
+                Visibility="{x:Bind helpers:XamlHelpers.ReverseVisibilityConverter(CCBCCShowButton.Visibility), Mode=OneWay}"
+                TokenDelimiter=";" />
+
+            <TextBlock
+                x:Name="BccTextBlock"
+                Grid.Row="4"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Text="Bcc: "
+                Visibility="{x:Bind helpers:XamlHelpers.ReverseVisibilityConverter(CCBCCShowButton.Visibility), Mode=OneWay}" />
+
+            <controls1:TokenizingTextBox
+                
+                x:Name="BccBox"
+                Grid.Row="4"
+                Grid.Column="1"
+                LostFocus="AddressBoxLostFocus"
+                VerticalAlignment="Center"
+                PlaceholderText="{x:Bind domain:Translator.ComposerToPlaceholder}"
+                Visibility="{x:Bind helpers:XamlHelpers.ReverseVisibilityConverter(CCBCCShowButton.Visibility), Mode=OneWay}"
+                SuggestedItemTemplate="{StaticResource SuggestionBoxTemplate}"
+                Tag="BCCBox"
+                TokenItemAdding="TokenItemAdding"
+                TokenItemTemplate="{StaticResource TokenBoxTemplate}"
+                TokenDelimiter=";" />
+
+            <!--  Subject  -->
+            <TextBlock
+                Grid.Row="5"
+                Margin="0,4,0,0"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center"
+                Text="{x:Bind domain:Translator.ComposerSubject}" />
+
+            <TextBox
+                Background="Transparent"
+                Grid.Row="5"
+                Grid.Column="1"
+                Margin="0,4,0,0"
+                BorderThickness="0"
+                Text="{x:Bind ViewModel.Subject, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+            <!--  Attachments  -->
+            <ListView
+                x:Name="AttachmentsListView"
+                Grid.Row="6"
+                Grid.ColumnSpan="2"
+                x:Load="{x:Bind helpers:XamlHelpers.CountToBooleanConverter(ViewModel.IncludedAttachments.Count), Mode=OneWay}"
+                IsItemClickEnabled="True"
+                ItemTemplate="{StaticResource ComposerFileAttachmentTemplate}"
+                ItemsSource="{x:Bind ViewModel.IncludedAttachments, Mode=OneWay}"
+                ItemClick="AttachmentClicked"
+                SelectionMode="None">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls1:WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+            </ListView>
+        </Grid>
+
+        <!--  Dropzone  -->
+        <Grid
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            Visibility="{x:Bind ViewModel.IsDraggingOverComposerGrid, Mode=OneWay}"
+            Drop="OnFileDropGridFileDropped"
+            DragOver="OnFileDropGridDragOver"
+            DragLeave="OnFileDropGridDragLeave"
+            AllowDrop="True">
+            <Grid
+                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                CornerRadius="9"
+                Margin="0,7,5,0">
+                <Rectangle
+                    x:Name="DropZoneBorder"
+                    RadiusX="9"
+                    RadiusY="9"
+                    Fill="Transparent"
+                    Stroke="{ThemeResource TextFillColorPrimaryBrush}"
+                    Opacity="0.5"
+                    StrokeDashArray="3,4"
+                    StrokeThickness="2" />
+                <TextBlock
+                    x:Name="DropZoneText"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Opacity="0.5"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    Text="{x:Bind domain:Translator.ComposerAttachmentsDropZone_Message}" />
+
                 <muxc:WebView2 x:Name="Chromium" />
+
             </Grid>
         </Border>
     </Grid>
