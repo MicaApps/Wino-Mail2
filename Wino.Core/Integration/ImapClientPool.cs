@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using MailKit;
 using MailKit.Net.Imap;
 using MailKit.Net.Proxy;
 using MailKit.Security;
+using MoreLinq;
 using Serilog;
 using Wino.Core.Domain.Entities;
 using Wino.Core.Domain.Enums;
@@ -38,10 +40,10 @@ namespace Wino.Core.Integration
             Vendor = "Wino"
         };
 
-        private const int MaxPoolSize = 5;
+        private readonly int MinimumPoolSize = 5;
 
-        private readonly ConcurrentBag<ImapClient> _clients = [];
-        private readonly SemaphoreSlim _semaphore = new(MaxPoolSize);
+        private readonly ConcurrentStack<ImapClient> _clients = [];
+        private readonly SemaphoreSlim _semaphore;
         private readonly CustomServerInformation _customServerInformation;
         private readonly Stream _protocolLogStream;
         private readonly ILogger _logger = Log.ForContext<ImapClientPool>();
@@ -50,6 +52,9 @@ namespace Wino.Core.Integration
         {
             _customServerInformation = customServerInformation;
             _protocolLogStream = protocolLogStream;
+
+            // Set the maximum pool size to 5 or the custom value if it's greater.
+            _semaphore = new(Math.Max(MinimumPoolSize, customServerInformation.MaxConcurrentClients));
         }
 
         private async Task EnsureConnectivityAsync(ImapClient client, bool isCreatedNew)
@@ -125,7 +130,7 @@ namespace Wino.Core.Integration
         {
             await _semaphore.WaitAsync();
 
-            if (_clients.TryTake(out ImapClient item))
+            if (_clients.TryPop(out ImapClient item))
             {
                 await EnsureConnectivityAsync(item, false);
 
@@ -139,28 +144,45 @@ namespace Wino.Core.Integration
             return client;
         }
 
-        public void Release(ImapClient item)
+        public void Release(ImapClient item, bool destroyClient = false)
         {
             if (item != null)
             {
-                _clients.Add(item);
+                if (destroyClient)
+                {
+                    lock (item.SyncRoot)
+                    {
+                        item.Disconnect(true);
+                    }
+
+                    item.Dispose();
+                }
+                else
+                {
+                    _clients.Push(item);
+                }
+
                 _semaphore.Release();
             }
         }
 
-        public ImapClient CreateNewClient()
+        public void DestroyClient(ImapClient client)
+        {
+            if (client == null) return;
+
+            client.Disconnect(true);
+            client.Dispose();
+        }
+
+        private ImapClient CreateNewClient()
         {
             ImapClient client = null;
 
             // Make sure to create a ImapClient with a protocol logger if enabled.
-            if (_protocolLogStream != null)
-            {
-                client = new ImapClient(new ProtocolLogger(_protocolLogStream));
-            }
-            else
-            {
-                client = new ImapClient();
-            }
+
+            client = _protocolLogStream != null
+                ? new ImapClient(new ProtocolLogger(_protocolLogStream))
+                : new ImapClient();
 
             HttpProxyClient proxyClient = null;
 
@@ -200,36 +222,55 @@ namespace Wino.Core.Integration
         {
             if (client.IsAuthenticated) return;
 
-            switch (_customServerInformation.IncomingAuthenticationMethod)
-            {
-                case ImapAuthenticationMethod.Auto:
-                    break;
-                case ImapAuthenticationMethod.None:
-                    break;
-                case ImapAuthenticationMethod.NormalPassword:
-                    break;
-                case ImapAuthenticationMethod.EncryptedPassword:
-                    break;
-                case ImapAuthenticationMethod.Ntlm:
-                    break;
-                case ImapAuthenticationMethod.CramMd5:
-                    break;
-                case ImapAuthenticationMethod.DigestMd5:
-                    break;
-                default:
-                    break;
-            }
+            var cred = new NetworkCredential(_customServerInformation.IncomingServerUsername, _customServerInformation.IncomingServerPassword);
+            var prefferedAuthenticationMethod = _customServerInformation.IncomingAuthenticationMethod;
 
-            await client.AuthenticateAsync(_customServerInformation.IncomingServerUsername, _customServerInformation.IncomingServerPassword);
+            if (prefferedAuthenticationMethod != ImapAuthenticationMethod.Auto)
+            {
+                // Anything beside Auto must be explicitly set for the client.
+                client.AuthenticationMechanisms.Clear();
+
+                var saslMechanism = GetSASLAuthenticationMethodName(prefferedAuthenticationMethod);
+
+                client.AuthenticationMechanisms.Add(saslMechanism);
+
+                await client.AuthenticateAsync(SaslMechanism.Create(saslMechanism, cred));
+            }
+            else
+            {
+                await client.AuthenticateAsync(cred);
+            }
+        }
+
+        private string GetSASLAuthenticationMethodName(ImapAuthenticationMethod method)
+        {
+            return method switch
+            {
+                ImapAuthenticationMethod.NormalPassword => "PLAIN",
+                ImapAuthenticationMethod.EncryptedPassword => "LOGIN",
+                ImapAuthenticationMethod.Ntlm => "NTLM",
+                ImapAuthenticationMethod.CramMd5 => "CRAM-MD5",
+                ImapAuthenticationMethod.DigestMd5 => "DIGEST-MD5",
+                _ => "PLAIN"
+            };
         }
 
         public void Dispose()
         {
-            foreach (var client in _clients)
+            _clients.ForEach(client =>
             {
-                client.Disconnect(true);
+                lock (client.SyncRoot)
+                {
+                    client.Disconnect(true);
+                }
+            });
+
+            _clients.ForEach(client =>
+            {
                 client.Dispose();
-            }
+            });
+
+            _clients.Clear();
 
             if (_protocolLogStream != null)
             {

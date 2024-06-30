@@ -15,8 +15,6 @@ namespace Wino.Views.ImapSetup
 {
     public sealed partial class AdvancedImapSetupPage : Page
     {
-        private string _protocolLog;
-
         public List<ImapAuthenticationMethodModel> AvailableAuthenticationMethods { get; } = new List<ImapAuthenticationMethodModel>()
         {
             new ImapAuthenticationMethodModel(Core.Domain.Enums.ImapAuthenticationMethod.Auto, Translator.ImapAuthenticationMethod_Auto),
@@ -151,7 +149,8 @@ namespace Wino.Views.ImapSetup
                 ProxyServer = ProxyServerBox.Text,
                 ProxyServerPort = ProxyServerPortBox.Text,
                 Address = AddressBox.Text,
-                DisplayName = DisplayNameBox.Text
+                DisplayName = DisplayNameBox.Text,
+                MaxConcurrentClients = 5
             };
 
             if (UseSameCredentialsForSending)

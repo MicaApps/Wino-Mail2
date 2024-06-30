@@ -48,6 +48,8 @@ namespace Wino.Views
         private bool isRenderingInProgress = false;
         private TaskCompletionSource<bool> DOMLoadedTask = new TaskCompletionSource<bool>();
 
+        private bool isChromiumDisposed = false;
+
         public WebView2 GetWebView() => Chromium;
 
         public MailRenderingPage()
@@ -56,7 +58,6 @@ namespace Wino.Views
 
             Environment.SetEnvironmentVariable("WEBVIEW2_DEFAULT_BACKGROUND_COLOR", "00FFFFFF");
             Environment.SetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--enable-features=OverlayScrollbar,msOverlayScrollbarWinStyle,msOverlayScrollbarWinStyleAnimation");
-            NavigationCacheMode = NavigationCacheMode.Enabled;
         }
 
         public override async void OnEditorThemeChanged()
@@ -90,7 +91,7 @@ namespace Wino.Views
             }
             script += ");";
 
-            return await Chromium.ExecuteScriptAsync(script);
+            return isChromiumDisposed ? string.Empty : await Chromium.ExecuteScriptAsync(script);
         }
 
         string _htmlContent = "";
@@ -151,9 +152,33 @@ namespace Wino.Views
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
+            base.OnNavigatedFrom(e);
+
             WeakReferenceMessenger.Default.Send(new CancelRenderingContentRequested());
 
-            base.OnNavigatedFrom(e);
+            // Disposing the page.
+            // Make sure the WebView2 is disposed properly.
+
+            DisposeWebView2();
+        }
+
+        private void DisposeWebView2()
+        {
+            if (Chromium == null) return;
+
+            Chromium.CoreWebView2Initialized -= CoreWebViewInitialized;
+            Chromium.NavigationStarting -= WebViewNavigationStarting;
+
+            if (Chromium.CoreWebView2 != null)
+            {
+                Chromium.CoreWebView2.DOMContentLoaded -= DOMContentLoaded;
+                Chromium.CoreWebView2.NewWindowRequested -= WindowRequested;
+            }
+
+            isChromiumDisposed = true;
+
+            Chromium.Close();
+            GC.Collect();
         }
 
         private string ConvertContentTheme(string original, bool isDarkMode, bool rawText = false)

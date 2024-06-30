@@ -9,6 +9,7 @@
     xmlns:controls="using:Wino.Controls"
     mc:Ignorable="d">
 
+
     <!--  Empty Page for Mail Rendering Sub Frame.  -->
     <Grid HorizontalAlignment="Center"
                           VerticalAlignment="Center">
@@ -56,4 +57,5 @@
                 x:Name="CountTextBlock" />--><!--
         </StackPanel>
     </Grid>-->
+
 </abstract:IdlePageAbstract>

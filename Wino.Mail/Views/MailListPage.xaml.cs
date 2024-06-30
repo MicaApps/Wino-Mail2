@@ -54,6 +54,7 @@ namespace Wino.Views
 
         private IStatePersistanceService StatePersistanceService { get; } = App.Current.Services.GetService<IStatePersistanceService>();
         private IPreferencesService PreferencesService { get; } = App.Current.Services.GetService<IPreferencesService>();
+        private IKeyPressService KeyPressService { get; } = App.Current.Services.GetService<IKeyPressService>();
 
         public MailListPage()
         {
@@ -77,13 +78,9 @@ namespace Wino.Views
         {
             base.OnNavigatedFrom(e);
 
-            // Force to go to empty page to dispose compose or rendering.
-            if (!(RenderingFrame.Content is IdlePage))
-            {
-                RenderingFrame.Navigate(typeof(IdlePage), null);
-            }
-
             this.Bindings.StopTracking();
+
+            RenderingFrame.Navigate(typeof(IdlePage));
 
             GC.Collect();
         }
@@ -163,29 +160,61 @@ namespace Wino.Views
 
         private void UpdateAdaptiveness()
         {
-            ReaderGrid.Visibility = !(StatePersistanceService.IsReadingMail && StatePersistanceService.IsReaderNarrowed) ? Visibility.Visible : Visibility.Collapsed;
-            RenderingFrame.Visibility = StatePersistanceService.IsReadingMail ? Visibility.Visible : (StatePersistanceService.IsReaderNarrowed ? Visibility.Collapsed : Visibility.Visible);
 
-            if (RenderingFrame.Visibility == Visibility.Collapsed)
+            bool shouldDisplayNoMessagePanel, shouldDisplayMailingList, shouldDisplayRenderingFrame;
+
+            // This is the smallest state UI can get.
+            // Either mailing list or rendering grid is visible.
+            if (StatePersistanceService.IsReaderNarrowed)
             {
-                Grid.SetColumn(ReaderGrid, 0);
-                Grid.SetColumnSpan(ReaderGrid, 2);
+                // Start visibility checks by no message panel.
+
+                bool isMultiSelectionEnabled = ViewModel.IsMultiSelectionModeEnabled || KeyPressService.IsCtrlKeyPressed();
+
+                shouldDisplayMailingList = isMultiSelectionEnabled ? true : (!ViewModel.HasSelectedItems || ViewModel.HasMultipleItemSelections);
+                shouldDisplayNoMessagePanel = shouldDisplayMailingList ? false : !ViewModel.HasSelectedItems || ViewModel.HasMultipleItemSelections;
+                shouldDisplayRenderingFrame = shouldDisplayMailingList ? false : !shouldDisplayNoMessagePanel;
             }
             else
             {
-                Grid.SetColumn(ReaderGrid, 0);
-                Grid.SetColumnSpan(ReaderGrid, 1);
+                shouldDisplayMailingList = true;
+                shouldDisplayNoMessagePanel = !ViewModel.HasSelectedItems || ViewModel.HasMultipleItemSelections;
+                shouldDisplayRenderingFrame = !shouldDisplayNoMessagePanel;
             }
 
-            if (ReaderGrid.Visibility == Visibility.Collapsed)
+            ReaderGridContainer.Visibility = shouldDisplayMailingList ? Visibility.Visible : Visibility.Collapsed;
+            RenderingFrame.Visibility = shouldDisplayRenderingFrame ? Visibility.Visible : Visibility.Collapsed;
+            NoMailSelectedPanel.Visibility = shouldDisplayNoMessagePanel ? Visibility.Visible : Visibility.Collapsed;
+
+            if (StatePersistanceService.IsReaderNarrowed)
             {
-                Grid.SetColumn(RenderingFrame, 0);
-                Grid.SetColumnSpan(RenderingFrame, 2);
+                if (RenderingFrame.Visibility == Visibility.Visible && ReaderGridContainer.Visibility == Visibility.Collapsed)
+                {
+                    // Extend rendering frame to full width.
+                    Grid.SetColumn(RenderingGrid, 0);
+                    Grid.SetColumnSpan(RenderingGrid, 2);
+
+                    Grid.SetColumn(ReaderGrid, 0);
+                    Grid.SetColumnSpan(ReaderGrid, 2);
+                }
+                else if (RenderingFrame.Visibility == Visibility.Collapsed && NoMailSelectedPanel.Visibility == Visibility.Collapsed)
+                {
+                    // Only mail list is available.
+                    // Extend the mailing list.
+                    Grid.SetColumn(ReaderGridContainer, 0);
+                    Grid.SetColumnSpan(ReaderGridContainer, 2);
+                }
             }
             else
             {
-                Grid.SetColumn(RenderingFrame, 1);
-                Grid.SetColumnSpan(RenderingFrame, 1);
+                // Mailing list is always visible on the first part.
+
+                Grid.SetColumn(ReaderGridContainer, 0);
+                Grid.SetColumnSpan(ReaderGridContainer, 1);
+
+                // Rendering grid should take the rest of the space.
+                Grid.SetColumn(RenderingGrid, 1);
+                Grid.SetColumnSpan(RenderingGrid, 1);
             }
         }
 
@@ -267,8 +296,6 @@ namespace Wino.Views
             if (message.SelectedMailItemViewModel == null)
             {
                 WeakReferenceMessenger.Default.Send(new CancelRenderingContentRequested());
-
-                ViewModel.NavigationService.Navigate(WinoPage.IdlePage, ViewModel.SelectedItemCount, NavigationReferenceFrame.RenderingFrame);
             }
             else
             {
@@ -301,7 +328,6 @@ namespace Wino.Views
                     // Find the MIME and go to rendering page.
 
                     if (message.SelectedMailItemViewModel == null) return;
-
 
                     if (IsComposingPageActive())
                     {
@@ -362,11 +388,6 @@ namespace Wino.Views
 
         public void Receive(ActiveMailFolderChangedEvent message)
         {
-            if (!(RenderingFrame.Content is IdlePage))
-            {
-                RenderingFrame.Navigate(typeof(IdlePage), null);
-            }
-
             UpdateAdaptiveness();
         }
 
@@ -547,12 +568,14 @@ namespace Wino.Views
 
         private void BlurLayer_Loaded(object sender, RoutedEventArgs e)
         {
+
             var hostElement = sender as UIElement;
             var compositor = ElementCompositionPreview.GetElementVisual(hostElement).Compositor;
             var spriteVisual = compositor.CreateSpriteVisual();
             spriteVisual.Size = hostElement.ActualSize;
 
             var blurEffect = new GaussianBlurEffect()
+
             {
                 BlurAmount = 10,
                 Source = new CompositionEffectSourceParameter("blur")

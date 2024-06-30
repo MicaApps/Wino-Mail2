@@ -276,7 +276,8 @@ namespace Wino.Core.Services
             await Task.WhenAll(UpdateSystemFolderInternalAsync(configuration.SentFolder, SpecialFolderType.Sent),
                                UpdateSystemFolderInternalAsync(configuration.DraftFolder, SpecialFolderType.Draft),
                                UpdateSystemFolderInternalAsync(configuration.JunkFolder, SpecialFolderType.Junk),
-                               UpdateSystemFolderInternalAsync(configuration.TrashFolder, SpecialFolderType.Deleted));
+                               UpdateSystemFolderInternalAsync(configuration.TrashFolder, SpecialFolderType.Deleted),
+                               UpdateSystemFolderInternalAsync(configuration.ArchiveFolder, SpecialFolderType.Archive));
 
             await _accountService.UpdateAccountAsync(account);
 
@@ -351,7 +352,7 @@ namespace Wino.Core.Services
             }
         }
 
-        private async Task UpdateFolderAsync(MailItemFolder folder)
+        public async Task UpdateFolderAsync(MailItemFolder folder)
         {
             if (folder == null)
             {
@@ -395,6 +396,8 @@ namespace Wino.Core.Services
             _logger.Debug("Deleting folder {FolderName}", folder.FolderName);
 
             await Connection.DeleteAsync(folder).ConfigureAwait(false);
+
+            // TODO: Delete all mail copies for this folder.
 
             ReportUIChange(new FolderRemovedMessage(folder, account));
         }
@@ -477,7 +480,11 @@ namespace Wino.Core.Services
                     .Where(a => a.MailAccountId == options.AccountId && a.IsSynchronizationEnabled && options.SynchronizationFolderIds.Contains(a.Id))
                     .ToListAsync();
 
-                folders.AddRange(synchronizationFolders);
+                // Order is important for moving.
+                // By implementation, removing mail folders must be synchronized first. Requests are made in that order for custom sync.
+                // eg. Moving item from Folder A to Folder B. If we start syncing Folder B first, we might miss adding assignment for Folder A.
+
+                folders.AddRange(synchronizationFolders.OrderBy(a => options.SynchronizationFolderIds.IndexOf(a.Id)));
             }
 
             return folders;
